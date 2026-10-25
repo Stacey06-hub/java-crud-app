@@ -3,6 +3,7 @@ package com.example.demo;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
@@ -15,41 +16,89 @@ public class StudentView extends VerticalLayout {
 
     private final List<Student> students = new ArrayList<>();
     private final Grid<Student> grid = new Grid<>(Student.class);
+
     private final TextField nameField = new TextField("Name");
     private final TextField emailField = new TextField("Email");
+
     private long nextId = 1;
 
     public StudentView() {
         grid.setColumns("id", "name", "email");
         grid.setItems(students);
+        grid.setSelectionMode(Grid.SelectionMode.SINGLE);
 
-        Button addButton = new Button("Add student", event -> addStudent());
+        Button addButton = new Button("Add student", event -> {
+            String name = nameField.getValue().trim();
+            String email = emailField.getValue().trim();
 
-        Button deleteButton = new Button("Delete selected", event -> {
+            if (name.isEmpty() || email.isEmpty()) {
+                return;
+            }
+
+            students.add(new Student(nextId++, name, email));
+            refreshGrid();
+            clearFields();
+        });
+
+        Button loadButton = new Button("Load selected", event -> {
             Student selected = grid.asSingleSelect().getValue();
+
             if (selected != null) {
-                students.remove(selected);
-                grid.setItems(students);
+                nameField.setValue(selected.getName());
+                emailField.setValue(selected.getEmail());
             }
         });
 
-        add(new com.vaadin.flow.component.html.H1("Student Management"));
-        add(nameField, emailField, addButton, deleteButton, grid);
+        Button updateButton = new Button("Update selected", event -> {
+            Student selected = grid.asSingleSelect().getValue();
+
+            if (selected == null) {
+                return;
+            }
+
+            String name = nameField.getValue().trim();
+            String email = emailField.getValue().trim();
+
+            if (name.isEmpty() || email.isEmpty()) {
+                return;
+            }
+
+            selected.setName(name);
+            selected.setEmail(email);
+
+            refreshGrid();
+            clearFields();
+        });
+
+        Button deleteButton = new Button("Delete selected", event -> {
+            Student selected = grid.asSingleSelect().getValue();
+
+            if (selected != null) {
+                students.remove(selected);
+                refreshGrid();
+                clearFields();
+            }
+        });
+
+        add(
+            new H1("Student Management"),
+            nameField,
+            emailField,
+            addButton,
+            loadButton,
+            updateButton,
+            deleteButton,
+            grid
+        );
     }
 
-    private void addStudent() {
-        String name = nameField.getValue();
-        String email = emailField.getValue();
-
-        if (name == null || name.isBlank()
-                || email == null || email.isBlank()) {
-            return;
-        }
-
-        students.add(new Student(nextId++, name, email));
+    private void refreshGrid() {
         grid.setItems(students);
+    }
 
+    private void clearFields() {
         nameField.clear();
         emailField.clear();
     }
 }
+
